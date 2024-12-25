@@ -26,7 +26,7 @@ func getProvider(ctx *pulumi.Context) (*aws.Provider, error) {
 		// // options can also be set as following
 		// Region: pulumi.String(region),
 		// AssumeRoleWithWebIdentity: &aws.ProviderAssumeRoleWithWebIdentityArgs{
-		// 	RoleArn:              pulumi.String(os.Getenv("ROLE_ARN")),
+		// 	RoleArn:              pulumi.String(GetRoleArn()),
 		// 	WebIdentityTokenFile: pulumi.String(TokenFilePath()),
 		// 	SessionName:          pulumi.String(sessionName),
 		// },
@@ -109,8 +109,8 @@ func main() {
 		// // avoid setting these values in config file,
 		// // refer to the README for more details.
 		// "aws:region": auto.ConfigValue{Value: region},
-		// "aws:assumeRoleWithWebIdentity.roleArn":          auto.ConfigValue{Value: os.Getenv("ROLE_ARN"), Secret: true},
-		// "aws:assumeRoleWithWebIdentity.webIdentityToken": auto.ConfigValue{Value: os.Getenv("OIDC_TOKEN"), Secret: true},
+		// "aws:assumeRoleWithWebIdentity.roleArn":          auto.ConfigValue{Value: GetRoleArn(), Secret: true},
+		// "aws:assumeRoleWithWebIdentity.webIdentityToken": auto.ConfigValue{Value: GetOIDCToken(), Secret: true},
 		// "aws:assumeRoleWithWebIdentity.sessionName":      auto.ConfigValue{Value: sessionName},
 	}
 	err = s.SetAllConfigWithOptions(ctx, configMap, &configOptions)
@@ -125,7 +125,7 @@ func main() {
 	// we directly pass them to the provider in the getProvider function
 	awsEnvVars := map[string]string{
 		"AWS_REGION":                  region,
-		"AWS_ROLE_ARN":                os.Getenv("ROLE_ARN"),
+		"AWS_ROLE_ARN":                GetRoleArn(),
 		"AWS_WEB_IDENTITY_TOKEN_FILE": TokenFilePath(),
 		"AWS_ROLE_SESSION_NAME":       sessionName,
 	}

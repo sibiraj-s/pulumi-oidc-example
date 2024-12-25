@@ -16,3 +16,7 @@ func GetOIDCToken() string {
 func TokenFilePath() string {
 	return filepath.Join(CurrentDir(), "token.txt")
 }
+
+func GetRoleArn() string {
+	return os.Getenv("ROLE_ARN")
+}
