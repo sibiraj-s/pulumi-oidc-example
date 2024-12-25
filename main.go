@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws"
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/s3"
 	"github.com/pulumi/pulumi/sdk/v3/go/auto"
+	"github.com/pulumi/pulumi/sdk/v3/go/auto/optdestroy"
 	"github.com/pulumi/pulumi/sdk/v3/go/auto/optup"
 	"github.com/pulumi/pulumi/sdk/v3/go/common/tokens"
 	"github.com/pulumi/pulumi/sdk/v3/go/common/workspace"
@@ -50,6 +52,15 @@ func deployFunc(ctx *pulumi.Context) error {
 }
 
 func main() {
+	// to destroy our program, we can run `go run main.go destroy`
+	destroy := false
+	argsWithoutProg := os.Args[1:]
+	if len(argsWithoutProg) > 0 {
+		if argsWithoutProg[0] == "destroy" {
+			destroy = true
+		}
+	}
+
 	ctx := context.Background()
 	currentDir := CurrentDir()
 
@@ -136,7 +147,24 @@ func main() {
 	_, err = s.Refresh(ctx)
 	CheckErrX(err, "Failed to refresh stack")
 
+	if destroy {
+		fmt.Println("Starting stack destroy")
+
+		// wire up our destroy to stream progress to stdout
+		stdoutStreamer := optdestroy.ProgressStreams(os.Stdout)
+
+		// destroy our stack and exit early
+		_, err := s.Destroy(ctx, stdoutStreamer, optdestroy.Remove())
+		CheckErrX(err, "Failed to destroy stack")
+
+		fmt.Println("Stack successfully destroyed")
+		os.Exit(0)
+	}
+
+	// wire up our update to stream progress to stdout
+	stdoutStreamer := optup.ProgressStreams(os.Stdout)
+
 	// execute the update operation on the stack.
-	_, err = s.Up(ctx, optup.ProgressStreams(os.Stdout))
+	_, err = s.Up(ctx, stdoutStreamer)
 	CheckErrX(err, "Failed to update stack")
 }

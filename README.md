@@ -6,7 +6,7 @@ This is an example of how to use OIDC with Pulumi automation api to assume a rol
 
 - Go (check the go version in the `go.mod` file)
 
-## Execution
+## Create resources
 
 Export `ROLE_ARN` and `OIDC_TOKEN` as environment variables and run the program.
 
@@ -27,3 +27,14 @@ We use `WebIdentityTokenFile` and also set it in environment variables instead o
 
 - https://github.com/pulumi/pulumi/issues/4981
 - https://github.com/pulumi/pulumi-aws/issues/3149
+
+
+### Destroy resources
+
+To destroy the resources, run the program with the `destroy` flag.
+
+```bash
+go run . destroy
+```
+
+This will destroy the resources created by the program and remove the stack.
