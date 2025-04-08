@@ -129,7 +129,7 @@ func main() {
 
 	// install the AWS provider plugin.
 	w := s.Workspace()
-	err = w.InstallPlugin(ctx, "aws", "v6.66.1")
+	err = w.InstallPlugin(ctx, "aws", "v6.75.0")
 	CheckErrX(err, "Failed to install aws plugin")
 
 	// just demonstration for how env vars can be set on the workspace
