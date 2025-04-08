@@ -13,5 +13,8 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Install dependencies
+        run: go mod download
+
       - name: Build binary
         run: go build .
