@@ -28,7 +28,3 @@ func CheckErrX(err error, message string) {
 	fmt.Println(message+":", err)
 	os.Exit(1)
 }
-
-func WriteToFile(path string, content string) error {
-	return os.WriteFile(path, []byte(content), 0644)
-}

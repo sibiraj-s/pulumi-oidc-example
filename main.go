@@ -10,28 +10,30 @@ import (
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/s3"
 	"github.com/pulumi/pulumi/sdk/v3/go/auto"
 	"github.com/pulumi/pulumi/sdk/v3/go/auto/optdestroy"
+	"github.com/pulumi/pulumi/sdk/v3/go/auto/optrefresh"
 	"github.com/pulumi/pulumi/sdk/v3/go/auto/optup"
 	"github.com/pulumi/pulumi/sdk/v3/go/common/tokens"
 	"github.com/pulumi/pulumi/sdk/v3/go/common/workspace"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-var pulumiDir = ".pulumi"
+var pulumiDir = ".pulumi-backend"
 
 var (
-	region      = "ap-south-1"
-	sessionName = "PulumiLocalDev"
+	region          = "ap-south-1"
+	sessionName     = "PulumiLocalDev"
+	awsProviderName = "awsProvider"
 )
 
 func getProvider(ctx *pulumi.Context) (*aws.Provider, error) {
-	return aws.NewProvider(ctx, "awsProvider", &aws.ProviderArgs{
-		// // options can also be set as following
-		// Region: pulumi.String(region),
-		// AssumeRoleWithWebIdentity: &aws.ProviderAssumeRoleWithWebIdentityArgs{
-		// 	RoleArn:              pulumi.String(GetRoleArn()),
-		// 	WebIdentityTokenFile: pulumi.String(TokenFilePath()),
-		// 	SessionName:          pulumi.String(sessionName),
-		// },
+	return aws.NewProvider(ctx, awsProviderName, &aws.ProviderArgs{
+		// options can also be set as following
+		Region: pulumi.String(region),
+		AssumeRoleWithWebIdentity: &aws.ProviderAssumeRoleWithWebIdentityArgs{
+			RoleArn:          pulumi.String(GetRoleArn()),
+			WebIdentityToken: pulumi.String(GetOIDCToken()),
+			SessionName:      pulumi.String(sessionName),
+		},
 	})
 }
 
@@ -67,17 +69,9 @@ func main() {
 	projectName := "dev"
 	stackName := "createS3Bucket"
 
-	// fullStackName := auto.FullyQualifiedStackName("local", projectName, stackName)
-	// fmt.Println("Stack name:", fullStackName)
-
 	err := EnsureDir(CurrentDir(), pulumiDir)
-	CheckErrX(err, "Failed to create .pulumi directory")
+	CheckErrX(err, fmt.Sprintf("Failed to create %s directory", pulumiDir))
 
-	// get the oidc token,
-	// this will write the token to a file
-	GetOIDCToken()
-
-	// set the Pulumi home directory to the current directory for easier debugging during development.
 	pulumiHomeDir := filepath.Join(currentDir, pulumiDir)
 	pulumiBackendURL := "file://" + pulumiHomeDir
 
@@ -93,10 +87,8 @@ func main() {
 		},
 	})
 
-	// setup a passphrase secrets provider and configure environment variables.
 	secretsProvider := auto.SecretsProvider("passphrase")
 	envvars := auto.EnvVars(map[string]string{
-		// in a real program, securely provide the password or use the actual environment.
 		"PULUMI_CONFIG_PASSPHRASE": "password",
 		"PULUMI_HOME":              os.Getenv("PULUMI_HOME"),
 	})
@@ -113,38 +105,18 @@ func main() {
 	s, err := auto.UpsertStackInlineSource(ctx, stackName, projectName, deployFunc, workspaceOpts...)
 	CheckErrX(err, "Failed to setup workspace")
 
-	// set configuration values with path options if required.
 	configOptions := auto.ConfigOptions{Path: true}
 	configMap := auto.ConfigMap{
-		"pulumi:disable-default-providers[0]": auto.ConfigValue{Value: "*"}, // disable all default providers; the AWS provider will be installed manually.
-		// // avoid setting these values in config file,
-		// // refer to the README for more details.
-		// "aws:region": auto.ConfigValue{Value: region},
-		// "aws:assumeRoleWithWebIdentity.roleArn":          auto.ConfigValue{Value: GetRoleArn(), Secret: true},
-		// "aws:assumeRoleWithWebIdentity.webIdentityToken": auto.ConfigValue{Value: GetOIDCToken(), Secret: true},
-		// "aws:assumeRoleWithWebIdentity.sessionName":      auto.ConfigValue{Value: sessionName},
+		"pulumi:disable-default-providers[0]": auto.ConfigValue{Value: "*"},
 	}
 	err = s.SetAllConfigWithOptions(ctx, configMap, &configOptions)
 	CheckErrX(err, "Failed to disable default providers")
 
-	// install the AWS provider plugin.
 	w := s.Workspace()
-	err = w.InstallPlugin(ctx, "aws", "v6.75.0")
+	err = w.InstallPlugin(ctx, "aws", "v6.78.0")
 	CheckErrX(err, "Failed to install aws plugin")
 
-	// just demonstration for how env vars can be set on the workspace
-	// we directly pass them to the provider in the getProvider function
-	awsEnvVars := map[string]string{
-		"AWS_REGION":                  region,
-		"AWS_ROLE_ARN":                GetRoleArn(),
-		"AWS_WEB_IDENTITY_TOKEN_FILE": TokenFilePath(),
-		"AWS_ROLE_SESSION_NAME":       sessionName,
-	}
-	err = w.SetEnvVars(awsEnvVars)
-	CheckErrX(err, "Failed to set env vars on workspace")
-
-	// refresh the stack to ensure the state is up-to-date.
-	_, err = s.Refresh(ctx)
+	_, err = s.Refresh(ctx, optrefresh.RunProgram(true))
 	CheckErrX(err, "Failed to refresh stack")
 
 	if destroy {

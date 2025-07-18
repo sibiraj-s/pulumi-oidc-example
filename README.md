@@ -5,6 +5,7 @@ This is an example of how to use OIDC with Pulumi automation api to assume a rol
 ## Prerequisites
 
 - Go (check the go version in the `go.mod` file)
+- Pulumi v3.183.0+
 
 ## Create resources
 
@@ -20,14 +21,6 @@ go run .
 ```
 
 This will create an S3 bucket in the AWS account by assuming the role using the provided OIDC token.
-
-Also, the Pulumi home directory and the project backend is configured to the current working directory to enable faster debugging during development.
-
-We use `WebIdentityTokenFile` and also set it in environment variables instead of setting the values in config, since the config values are cached in the state file and while refresh the newly set values are not picked up. This is a known issue with Pulumi. See the following issues for more details:
-
-- https://github.com/pulumi/pulumi/issues/4981
-- https://github.com/pulumi/pulumi-aws/issues/3149
-
 
 ### Destroy resources
 
